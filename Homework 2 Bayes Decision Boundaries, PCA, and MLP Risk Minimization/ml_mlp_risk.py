@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
+
 def main():
     # Get student number for seeding randomness
     student_number = int(input("Enter your student number: "))
@@ -11,11 +12,13 @@ def main():
     num_samples = 100
     true_mean1 = np.array([2, 2])
     true_cov1 = np.array([[1, 0.5], [0.5, 1]])
-    samples1 = np.random.multivariate_normal(true_mean1, true_cov1, num_samples)
+    samples1 = np.random.multivariate_normal(
+        true_mean1, true_cov1, num_samples)
 
     true_mean2 = np.array([5, 5])
     true_cov2 = np.array([[1, -0.5], [-0.5, 1]])
-    samples2 = np.random.multivariate_normal(true_mean2, true_cov2, num_samples)
+    samples2 = np.random.multivariate_normal(
+        true_mean2, true_cov2, num_samples)
 
     # Calculate means and covs using functions from Part 1 (assume implemented)
     def calculate_mean(data):
@@ -51,12 +54,14 @@ def main():
     # ## TODO ##: Implement Maximum A Posteriori (MAP) classifier
     prior1 = 0.7
     prior2 = 0.3
+
     def map_classifier(x):
         # Replace with your code
         return 0  # Dummy
 
     # ## TODO ##: Implement Risk-based MAP (Minimum Risk) classifier
     loss = np.array([[0, 1], [10, 0]])
+
     def risk_map_classifier(x):
         # Replace with your code
         return 0  # Dummy
@@ -73,7 +78,8 @@ def main():
     # Visualization (provided): Plot for MAP as example
     x_min, x_max = 0, 7
     y_min, y_max = 0, 7
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1),
+                         np.arange(y_min, y_max, 0.1))
     grid = np.c_[xx.ravel(), yy.ravel()]
 
     Z = np.array([map_classifier(pt) for pt in grid])
@@ -82,15 +88,19 @@ def main():
     plt.figure(figsize=(8, 6))
     cmap_light = ListedColormap(['#AAAAFF', '#FFAAAA'])
     plt.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.8)
-    plt.scatter(samples1[:, 0], samples1[:, 1], color='blue', label='Class 1', alpha=0.5)
-    plt.scatter(samples2[:, 0], samples2[:, 1], color='red', label='Class 2', alpha=0.5)
-    plt.scatter(test_points[:, 0], test_points[:, 1], color='green', marker='x', label='Test Points')
+    plt.scatter(samples1[:, 0], samples1[:, 1],
+                color='blue', label='Class 1', alpha=0.5)
+    plt.scatter(samples2[:, 0], samples2[:, 1],
+                color='red', label='Class 2', alpha=0.5)
+    plt.scatter(test_points[:, 0], test_points[:, 1],
+                color='green', marker='x', label='Test Points')
     plt.title('MAP Decision Boundary with Samples and Test Points')
     plt.xlabel('Feature 1')
     plt.ylabel('Feature 2')
     plt.legend()
     plt.grid(True)
     plt.show()
+
 
 if __name__ == "__main__":
     main()

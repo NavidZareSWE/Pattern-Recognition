@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
+
 def main():
     # Get student number for seeding randomness
     student_number = int(input("Enter your student number: "))
@@ -11,11 +12,13 @@ def main():
     num_samples = 100
     true_mean1 = np.array([2, 2])
     true_cov1 = np.array([[1, 0.5], [0.5, 1]])
-    samples1 = np.random.multivariate_normal(true_mean1, true_cov1, num_samples)
+    samples1 = np.random.multivariate_normal(
+        true_mean1, true_cov1, num_samples)
 
     true_mean2 = np.array([5, 5])
     true_cov2 = np.array([[1, -0.5], [-0.5, 1]])
-    samples2 = np.random.multivariate_normal(true_mean2, true_cov2, num_samples)
+    samples2 = np.random.multivariate_normal(
+        true_mean2, true_cov2, num_samples)
 
     def calculate_mean(data):
         return None  # Copy from Part 1
@@ -56,9 +59,12 @@ def main():
 
     # Visualization (provided): Plot samples and decision boundary
     # Create grid
-    x_min, x_max = min(np.min(samples1[:,0]), np.min(samples2[:,0])) - 1, max(np.max(samples1[:,0]), np.max(samples2[:,0])) + 1
-    y_min, y_max = min(np.min(samples1[:,1]), np.min(samples2[:,1])) - 1, max(np.max(samples1[:,1]), np.max(samples2[:,1])) + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1), np.arange(y_min, y_max, 0.1))
+    x_min, x_max = min(np.min(samples1[:, 0]), np.min(
+        samples2[:, 0])) - 1, max(np.max(samples1[:, 0]), np.max(samples2[:, 0])) + 1
+    y_min, y_max = min(np.min(samples1[:, 1]), np.min(
+        samples2[:, 1])) - 1, max(np.max(samples1[:, 1]), np.max(samples2[:, 1])) + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1),
+                         np.arange(y_min, y_max, 0.1))
     grid = np.c_[xx.ravel(), yy.ravel()]
 
     Z = np.array([bayes_classifier(pt) for pt in grid])
@@ -75,6 +81,7 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
+
 
 if __name__ == "__main__":
     main()
