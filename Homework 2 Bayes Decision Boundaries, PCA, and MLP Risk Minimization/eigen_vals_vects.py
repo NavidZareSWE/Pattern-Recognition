@@ -110,6 +110,11 @@ def main():
 
         return eigenvectors
 
+    def verify_orthogonality(eigenvectors1, eigenvectors2):
+        dot_product1 = np.dot(eigenvectors1[:, 0], eigenvectors1[:, 1])
+        dot_product2 = np.dot(eigenvectors2[:, 0], eigenvectors2[:, 1])
+        return np.isclose(dot_product1, 0.0) and np.isclose(dot_product2, 0.0)
+
     eigenvectors1 = calculate_eigenvectors(cov_matrix1, eigenvalues1)
     eigenvectors2 = calculate_eigenvectors(cov_matrix2, eigenvalues2)
 

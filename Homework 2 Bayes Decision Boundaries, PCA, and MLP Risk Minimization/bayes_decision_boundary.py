@@ -5,7 +5,9 @@ from matplotlib.colors import ListedColormap
 
 def main():
     # Get student number for seeding randomness
-    student_number = int(input("Enter your student number: "))
+    # Get student number for seeding randomness
+    # student_number = int(input("Enter your student number: "))
+    student_number = 40435071
     np.random.seed(student_number)
 
     # Generate samples for 2 classes (same as Part 1)
@@ -21,10 +23,22 @@ def main():
         true_mean2, true_cov2, num_samples)
 
     def calculate_mean(data):
-        return None  # Copy from Part 1
+        sums = np.zeros(2)
+        n = data.shape[0]
+
+        for col_idx, col in enumerate(data.T):
+            col_sum = 0
+            for val in col:
+                col_sum += val
+            sums[col_idx] = col_sum
+
+        return sums / n
 
     def calculate_covariance(data, mean):
-        return None  # Copy from Part 1
+        n = data.shape[0]           # Num rows  = (n_samples)
+        diff = data - mean
+        cov = np.dot(diff.T, diff) / n
+        return cov
 
     calculated_mean1 = calculate_mean(samples1)
     calculated_mean2 = calculate_mean(samples2)
@@ -35,25 +49,41 @@ def main():
     prior1 = 0.5
     prior2 = 0.5
 
-    # ## TODO ##: Implement 2x2 matrix determinant from scratch
-    def matrix_det(cov):
-        return None  # a*d - b*c
+    # ## DONE ##: Implement 2x2 matrix determinant from scratch
+    def matrix_det(_2d_matrix):
+        return (_2d_matrix[0][0] * _2d_matrix[1][1]) - (_2d_matrix[0][1] * _2d_matrix[1][0])
 
-    # ## TODO ##: Implement 2x2 matrix inverse from scratch
+    # ## Done ##: Implement 2x2 matrix inverse from scratch
     def matrix_inv(cov):
-        return None  # 1/det * [[d, -b], [-c, a]]
+        det = matrix_det(cov)
+        # 1/det * [[d, -b], [-c, a]]
+        return np.array([[cov[1, 1], -cov[0, 1]], [-cov[1, 0], cov[0, 0]]]) / det
 
-    # ## TODO ##: Implement multivariate Gaussian log PDF from scratch
+    # ## Done ##: Implement multivariate Gaussian log PDF from scratch
     # Use np.dot for multiplications
-    def multivariate_gaussian_logpdf(x, mean, cov):
-        return None  # Replace with your code
 
-    # ## TODO ##: Implement Bayes classifier
+    def multivariate_gaussian_logpdf(x, mean, cov):
+        dim = len(mean)
+        diff = x - mean
+        det_cov = matrix_det(cov)
+        inv_cov = matrix_inv(cov)
+        mahalanobis = np.dot(np.dot(diff, inv_cov), diff)
+        return -0.5 * (dim * np.log(2 * np.pi) + np.log(det_cov) + mahalanobis)
+
+    # ## Done ##: Implement Bayes classifier
     # Return 0 if >=0 else 1
     # Expected: Function that takes x (2D array) and returns class (0 or 1)
     def bayes_classifier(x):
-        # Replace with your code
-        return 0  # Dummy
+        prior_ratio = prior1 / prior2
+        log_priror_ratio = np.log(prior_ratio)
+        log_pdf_1 = multivariate_gaussian_logpdf(
+            x, calculated_mean1, cov_matrix1)
+        log_pdf_2 = multivariate_gaussian_logpdf(
+            x, calculated_mean2, cov_matrix2)
+        score = log_priror_ratio + (log_pdf_1 - log_pdf_2)
+        if score >= 0:
+            return 0
+        return 1
 
     print("Bayes classifier implemented. Run visualization to check.")
 
