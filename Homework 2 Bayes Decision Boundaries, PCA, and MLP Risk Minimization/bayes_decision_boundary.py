@@ -85,6 +85,66 @@ def main():
             return 0
         return 1
 
+    def visualize_boundary_with_distributions(samples1, samples2, mean1, mean2, cov1, cov2, bayes_classifier):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+
+        # Create grid
+        x_min, x_max = -1, 8
+        y_min, y_max = -1, 8
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.1),
+                             np.arange(y_min, y_max, 0.1))
+        grid = np.c_[xx.ravel(), yy.ravel()]
+
+        # Calculate decision regions
+        Z = np.array([bayes_classifier(pt) for pt in grid])
+        Z = Z.reshape(xx.shape)
+
+        # Plot 1: Decision boundary with samples
+        cmap_light = ListedColormap(['#AAAAFF', '#FFAAAA'])
+        ax1.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.5)
+        ax1.contour(xx, yy, Z, levels=[0.5], colors='black', linewidths=2)
+        ax1.scatter(samples1[:, 0], samples1[:, 1],
+                    color='blue', label='Class 1')
+        ax1.scatter(samples2[:, 0], samples2[:, 1],
+                    color='red', label='Class 2')
+        ax1.plot(mean1[0], mean1[1], 'b*', markersize=15, label='Mean 1')
+        ax1.plot(mean2[0], mean2[1], 'r*', markersize=15, label='Mean 2')
+        ax1.set_title('Bayes Decision Boundary')
+        ax1.legend()
+        ax1.grid(True)
+
+        # Plot 2: Distribution contours
+        from scipy.stats import multivariate_normal
+        rv1 = multivariate_normal(mean1, cov1)
+        rv2 = multivariate_normal(mean2, cov2)
+
+        # Calculate PDFs
+        pos = np.dstack((xx, yy))
+        pdf1 = rv1.pdf(pos)
+        pdf2 = rv2.pdf(pos)
+
+        # Plot contours
+        ax2.contour(xx, yy, pdf1, colors='blue', alpha=0.5, levels=5)
+        ax2.contour(xx, yy, pdf2, colors='red', alpha=0.5, levels=5)
+        ax2.contour(xx, yy, Z, levels=[0.5], colors='black', linewidths=2)
+        ax2.scatter(samples1[:, 0], samples1[:, 1],
+                    color='blue', alpha=0.3, s=10)
+        ax2.scatter(samples2[:, 0], samples2[:, 1],
+                    color='red', alpha=0.3, s=10)
+        ax2.set_title('Distribution Contours with Decision Boundary')
+        ax2.grid(True)
+
+        plt.tight_layout()
+        plt.show()
+
+        # Print analysis
+        print("\n=== Decision Boundary Analysis ===")
+        print(f"Class 1 Mean: {mean1}")
+        print(f"Class 2 Mean: {mean2}")
+        print(f"Distance between means: {np.linalg.norm(mean2 - mean1):.2f}")
+        print("\nThe decision boundary is perpendicular to the line connecting the means")
+        print("and positioned based on the covariances and priors (equal priors = 0.5).")
+
     print("Bayes classifier implemented. Run visualization to check.")
 
     # Visualization (provided): Plot samples and decision boundary
@@ -111,6 +171,10 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
+    visualize_boundary_with_distributions(samples1, samples2,
+                                          calculated_mean1, calculated_mean2,
+                                          cov_matrix1, cov_matrix2,
+                                          bayes_classifier)
 
 
 if __name__ == "__main__":

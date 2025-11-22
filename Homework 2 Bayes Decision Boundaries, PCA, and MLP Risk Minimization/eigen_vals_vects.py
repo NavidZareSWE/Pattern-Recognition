@@ -110,10 +110,9 @@ def main():
 
         return eigenvectors
 
-    def verify_orthogonality(eigenvectors1, eigenvectors2):
-        dot_product1 = np.dot(eigenvectors1[:, 0], eigenvectors1[:, 1])
-        dot_product2 = np.dot(eigenvectors2[:, 0], eigenvectors2[:, 1])
-        return np.isclose(dot_product1, 0.0) and np.isclose(dot_product2, 0.0)
+    def verify_orthogonality(eigenvector):
+        dot_product = np.dot(eigenvector[:, 0], eigenvector[:, 1])
+        return np.isclose(dot_product, 0.0)
 
     eigenvectors1 = calculate_eigenvectors(cov_matrix1, eigenvalues1)
     eigenvectors2 = calculate_eigenvectors(cov_matrix2, eigenvalues2)
@@ -122,11 +121,82 @@ def main():
     print("Class 1 Covariance Matrix:\n", cov_matrix1)
     print("Class 1 Eigenvalues:\n", eigenvalues1)
     print("Class 1 Eigenvectors:\n", eigenvectors1)
+    print("Class 1 Eigenvectors are Orthogonal?",
+          verify_orthogonality(eigenvectors1))
 
     print("Class 2 Mean:\n", calculated_mean2)
     print("Class 2 Covariance Matrix:\n", cov_matrix2)
     print("Class 2 Eigenvalues:\n", eigenvalues2)
     print("Class 2 Eigenvectors:\n", eigenvectors2)
+    print("Class 2 Eigenvectors are Orthogonal?",
+          verify_orthogonality(eigenvectors2))
+
+    def reconstruct_data(data, mean, eigenvectors, n_components):
+        #    Z = X_centered × V_k
+        #    X_reconstructed = Z × V_k^T + μ
+        centered = data - mean
+        Z = np.dot(centered, eigenvectors[:, :n_components])
+        reconstructed = np.dot(
+            Z, eigenvectors[:, :n_components].T) + mean
+        return reconstructed
+
+    def calculate_explained_variance_ratio(eigenvalues):
+        total_variance = np.sum(eigenvalues)
+        explained_variance_ratio = eigenvalues / total_variance
+        cumulative_variance = np.cumsum(explained_variance_ratio)
+        return explained_variance_ratio, cumulative_variance
+
+    reconstructed1_1pc = reconstruct_data(
+        samples1, calculated_mean1, eigenvectors1, 1)
+    reconstructed1_2pc = reconstruct_data(
+        samples1, calculated_mean1, eigenvectors1, 2)
+    evr1, cumulative1 = calculate_explained_variance_ratio(eigenvalues1)
+    evr2, cumulative2 = calculate_explained_variance_ratio(eigenvalues2)
+
+    # Report the results
+    print("\n=== Explained Variance Analysis ===")
+    print("\nClass 1:")
+    print(f"PC1 explains: {evr1[0]*100:.2f}% of variance")
+    print(f"PC2 explains: {evr1[1]*100:.2f}% of variance")
+    print(
+        f"Cumulative: PC1={cumulative1[0]*100:.2f}%, PC1+PC2={cumulative1[1]*100:.2f}%")
+
+    print("\nClass 2:")
+    print(f"PC1 explains: {evr2[0]*100:.2f}% of variance")
+    print(f"PC2 explains: {evr2[1]*100:.2f}% of variance")
+    print(
+        f"Cumulative: PC1={cumulative2[0]*100:.2f}%, PC1+PC2={cumulative2[1]*100:.2f}%")
+
+    def investigate_reconstruction_with_largest_eigenvalue(samples, mean, eigenvectors, eigenvalues, class_name):
+        reconstructed_1pc = reconstruct_data(samples, mean, eigenvectors, 1)
+        reconstructed_2pc = reconstruct_data(samples, mean, eigenvectors, 2)
+
+        # Calculate mean errors
+        error_1pc = np.mean(np.sum((samples - reconstructed_1pc)**2, axis=1))
+        error_2pc = np.mean(np.sum((samples - reconstructed_2pc)**2, axis=1))
+
+        # Calculate explained variance ratio
+        total_variance = np.sum(eigenvalues)
+        evr = eigenvalues / total_variance
+
+        print(f"\n=== {class_name} Reconstruction Analysis ===")
+        print(
+            f"Eigenvalues: lambda_1={eigenvalues[0]:.3f}, lambda_2={eigenvalues[1]:.3f}")
+        print(f"Variance explained by PC1: {evr[0]*100:.1f}%")
+        print(f"Variance explained by PC2: {evr[1]*100:.1f}%")
+        print(f"Mean reconstruction error with 1 PC: {error_1pc:.4f}")
+        print(f"Mean reconstruction error with 2 PCs: {error_2pc:.4f}")
+        print(
+            f"Error reduction by using 2 PCs: {(1 - error_2pc/error_1pc)*100:.1f}%")
+
+        return None
+
+    investigate_reconstruction_with_largest_eigenvalue(
+        samples1, calculated_mean1, eigenvectors1, eigenvalues1, "Class 1"
+    )
+    investigate_reconstruction_with_largest_eigenvalue(
+        samples2, calculated_mean2, eigenvectors2, eigenvalues2, "Class 2"
+    )
 
     # Visualization (provided): Scatter plot with eigenvectors for each class
     if all(v is not None for v in [calculated_mean1, cov_matrix1, eigenvalues1, eigenvectors1, calculated_mean2, cov_matrix2, eigenvalues2, eigenvectors2]):
