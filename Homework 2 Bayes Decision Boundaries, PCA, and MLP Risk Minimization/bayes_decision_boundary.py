@@ -142,8 +142,6 @@ def main():
         print(f"Class 1 Mean: {mean1}")
         print(f"Class 2 Mean: {mean2}")
         print(f"Distance between means: {np.linalg.norm(mean2 - mean1):.2f}")
-        print("\nThe decision boundary is perpendicular to the line connecting the means")
-        print("and positioned based on the covariances and priors (equal priors = 0.5).")
 
     print("Bayes classifier implemented. Run visualization to check.")
 
