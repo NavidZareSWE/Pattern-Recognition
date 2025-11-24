@@ -86,6 +86,7 @@ def main():
         return 1
 
     def visualize_boundary_with_distributions(samples1, samples2, mean1, mean2, cov1, cov2, bayes_classifier):
+        print("Visualizing the decision Boundary (this might take a while), please wait.")
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
         # Create grid

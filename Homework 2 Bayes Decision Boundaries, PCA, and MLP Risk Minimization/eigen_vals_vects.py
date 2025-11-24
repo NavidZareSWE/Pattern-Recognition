@@ -186,8 +186,6 @@ def main():
         print(f"Variance explained by PC2: {evr[1]*100:.1f}%")
         print(f"Mean reconstruction error with 1 PC: {error_1pc:.4f}")
         print(f"Mean reconstruction error with 2 PCs: {error_2pc:.4f}")
-        print(
-            f"Error reduction by using 2 PCs: {(1 - error_2pc/error_1pc)*100:.1f}%")
 
         return None
 
