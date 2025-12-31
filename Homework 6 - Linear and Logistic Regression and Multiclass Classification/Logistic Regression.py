@@ -66,7 +66,7 @@ def load_and_preprocess_data():
     ratio = counts.max() / counts.min()
 
     print("--- Is Dataset Balanced? ---")
-    print(data_encoded['y'].value_counts(normalize=True).mul(100).round(1))
+    print(data_encoded['y'].value_counts(normalize=True) * 100)
     print(f"\nImbalance ratio: {ratio:.1f}:1")
     print(f"Result: {'Imbalanced' if ratio > 2 else 'Balanced'}")
 
