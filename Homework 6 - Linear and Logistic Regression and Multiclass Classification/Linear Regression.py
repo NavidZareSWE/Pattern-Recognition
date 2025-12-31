@@ -1,0 +1,161 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+# import os
+
+
+def train_test_split(X, y, test_size=0.2, random_state=42):
+    np.random.seed(random_state)
+
+    n_samples = len(X)
+    n_test = int(n_samples * test_size)
+
+    # create a np array of consecutive integers
+    # from 0 to n_samples(exclusive)
+    indices = np.arange(n_samples)
+    np.random.shuffle(indices)
+
+    # hold-out validation
+    test_indices = indices[:n_test]
+    train_indices = indices[n_test:]
+
+    return (X[train_indices], X[test_indices],
+            y[train_indices], y[test_indices])
+
+
+def load_and_preprocess_data():
+    # print(os.getcwd())
+    # 1.2-1 Load the dataset
+    data = pd.read_csv('auto_mpg.csv.csv')
+    # 1.2-2 Looking at some samples
+    print(data.sample(8))
+    # 1.2-3 Matrix shape
+    print(data.shape)
+    # 1.2-4 mpg Mean & mpg Standard Deviation
+    mean_mpg = np.mean(data.to_numpy()[:, -1])
+    std_mpg = np.std(data.to_numpy()[:, -1])
+    print(f"MPG Mean: {mean_mpg:.2f}")
+    print(f"MPG Std Dev: {std_mpg:.2f}")
+    # 1.2-5 correlation between weight & mpg
+    weight = data['weight'].to_numpy()
+    mpg = data['mpg'].to_numpy()
+    correlation = np.corrcoef(weight, mpg)[0, 1]
+    print(f"Correlation (weight vs mpg): {correlation:.4f}")
+
+    # 1.3-1 Retain X & Y
+    X = data['weight'].values
+    y = data['mpg'].values
+    # 1.3-2 Retain X & Y
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+    print(f"Training samples: {len(X_train)} == {len(y_train)}")
+    print(f"Testing samples: {len(X_test)} == {len(y_test)}")
+    # 1.3-3 Normalize using z-score
+    # axis specifies the dimension along which an operation is performed.
+    # If axis=0, the operation is performed down the rows, column by column.
+    # Read More: https://numpy.org/doc/stable/reference/generated/numpy.mean.html
+    # Read More: https://numpy.org/doc/stable/reference/generated/numpy.std.html
+    X_train_mean = X_train.mean(axis=0)
+    X_train_std = X_train.std(axis=0)
+    if X_train_std == 0:
+        X_train_std = 1  # Avoid division by zero
+    X_train_normalized = (X_train - X_train_mean) / X_train_std
+    X_test_normalized = (X_test - X_train_mean) / X_train_std
+
+    return X_train_normalized, X_test_normalized, y_train, y_test
+
+
+def batch_gradient_descent(X, y, learning_rate=0.01, n_iterations=1000):
+    n = len(X)
+    theta_0 = 0.0
+    theta_1 = 0.0
+
+    cost_history = []
+    for i in range(n_iterations):
+        y_pred = theta_0 + theta_1 * X
+        error = y_pred - y
+        grad_theta_0 = 1 / n * np.sum(error)
+        grad_theta_1 = 1 / n * np.sum(error * X)
+
+        theta_0 = theta_0 - learning_rate * grad_theta_0
+        theta_1 = theta_1 - learning_rate * grad_theta_1
+
+        if i % 100 == 0:
+            cost = (1 / (2 * n)) * np.sum(error ** 2)
+            cost_history.append(cost)
+            print(f"Iteration {i}: Cost = {cost:.6f}")
+
+    return theta_0, theta_1, cost_history
+
+
+def stochastic_gradient_descent(X, y, learning_rate=0.01, n_epochs=100):
+    # epochs = number of complete passes through the entire training dataset
+    n = len(X)
+    theta_0 = 0.0
+    theta_1 = 0.0
+
+    cost_history = []
+    for i in range(n_epochs):
+        indices = np.arange(n)
+        np.random.shuffle(indices)
+        for j in indices:
+            xj = X[j]
+            yj = y[j]
+            y_pred = theta_0 + theta_1 * xj
+            error = y_pred - yj
+
+            theta_0 = theta_0 - learning_rate * error
+            theta_1 = theta_1 - learning_rate * error * xj
+
+        y_pred_all = theta_0 + theta_1 * X
+        cost = (1 / (2 * n)) * np.sum((y_pred_all - y) ** 2)
+        cost_history.append(cost)
+
+    return theta_0, theta_1, cost_history
+
+
+def closed_form_solution(X, y):
+    # First column always 1sS
+    n = len(X)
+    X_with_b = np.column_stack([np.ones(n), X])
+    # θ = (XᵀX)⁻¹ · Xᵀy
+    XtX = X_with_b.T @ X_with_b  # XᵀX
+    XtX_inv = np.linalg.inv(XtX)       # (XᵀX)⁻¹
+    Xty = X_with_b.T @ y          # Xᵀy
+    theta = XtX_inv @ Xty
+    return theta
+
+
+if __name__ == "__main__":
+    X_train_norm, X_test_norm, y_train, y_test = load_and_preprocess_data()
+
+    # Batch Gradient Descent
+    theta_0_bgd, theta_1_bgd, cost_history = batch_gradient_descent(
+        X_train_norm, y_train,
+        learning_rate=0.1,
+        n_iterations=1000
+    )
+
+    print("\n--- Batch Gradient Descent Results ---")
+    print(f"Learned parameters:")
+    print(f"theta_0 (intercept): {theta_0_bgd:.4f}")
+    print(f"theta_1 (slope): {theta_1_bgd:.4f}")
+
+    # Stochastic Gradient Descent
+    theta_0_sgd, theta_1_sgd, cost_sgd = stochastic_gradient_descent(
+        X_train_norm, y_train,
+        learning_rate=0.01,
+        n_epochs=100
+    )
+
+    print("\n--- Stochastic Gradient Descent Results ---")
+    print(f"Learned parameters:")
+    print(f"theta_0 (intercept): {theta_0_sgd:.4f}")
+    print(f"theta_1 (slope): {theta_1_sgd:.4f}")
+
+    # Closed Form Solution
+    [theta_0_cf, theta_1_cf] = closed_form_solution(X_train_norm, y_train)
+
+    print("\n--- Closed-Form Solution Results ---")
+    print(f"Learned parameters:")
+    print(f"theta_0 (intercept): {theta_0_cf:.4f}")
+    print(f"theta_1 (slope): {theta_1_cf:.4f}")
