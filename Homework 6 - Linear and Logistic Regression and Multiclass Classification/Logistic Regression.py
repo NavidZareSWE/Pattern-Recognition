@@ -3,11 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def sigmoid(z):
-    z = np.clip(z, -500, 500)
-    return 1 / (1 + np.exp(-z))
-
-
 def encode_categorical(data):
     data_encoded = data.copy()
 
@@ -163,5 +158,143 @@ def load_and_preprocess_data():
     return X_train, X_test, y_train, y_test
 
 
+def sigmoid(z):
+    z = np.clip(z, -500, 500)
+    return 1 / (1 + np.exp(-z))
+
+
+def compute_cost(y, y_pred):
+    n = len(y)
+    epsilon = 1e-15  # Avoid 0
+    y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
+
+    cost = -(1/n) * np.sum(
+        y * np.log(y_pred) + (1 - y) * np.log(1 - y_pred)
+    )
+    return cost
+
+
+def initialize_parameters(n_features):
+    weights = np.zeros(n_features)
+    bias = 0
+    return weights, bias
+
+
+def predict_prob(X, weights, bias):
+    # z = X · w + b
+    z = np.dot(X, weights) + bias
+    return sigmoid(z)
+
+
+def predict(X, weights, bias, threshold=0.5):
+    probabilities = predict_prob(X, weights, bias)
+    return (probabilities >= threshold).astype(int)
+
+
+def fit(X, y, learning_rate=0.01, n_iterations=1000):
+    n_samples, n_features = X.shape
+    weights, bias = initialize_parameters(n_features)
+    cost_history = []
+
+    print("\n--- Training Progress ---")
+    for i in range(n_iterations):
+        z = np.dot(X, weights) + bias
+        y_pred = sigmoid(z)
+
+        # Compute gradients
+        dw = (1/n_samples) * np.dot(X.T, (y_pred - y))
+        db = (1/n_samples) * np.sum(y_pred - y)
+
+        weights = weights - learning_rate * dw
+        bias = bias - learning_rate * db
+
+        cost = compute_cost(y, y_pred)
+        cost_history.append(cost)
+
+        if i % 100 == 0:
+            print(f"Iteration {i}: Cost = {cost:.6f}")
+
+    return weights, bias, cost_history
+
+
+def calculate_metrics(y_true, y_pred):
+    TP = np.sum((y_true == 1) & (y_pred == 1))
+    TN = np.sum((y_true == 0) & (y_pred == 0))
+    FP = np.sum((y_true == 0) & (y_pred == 1))
+    FN = np.sum((y_true == 1) & (y_pred == 0))
+
+    # Calculate accuracy as the proportion of true results (TP + TN)
+    # to the total number of cases (TP + TN + FP + FN).
+    accuracy = (TP + TN) / (TP + TN + FP + FN)
+
+    # Calculate precision as the ratio of true positives (TP) to
+    # the sum of true positives and false positives (TP + FP);
+    # return 0 if there are no predicted positives.
+    precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+
+    # Calculate recall as the ratio of true positives (TP) to
+    # the sum of true positives and false negatives (TP + FN);
+    # return 0 if there are no actual positives.
+    recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+
+    # Calculate F1 score as the harmonic mean of precision and recall;
+    # return 0 if both are zero to avoid division by zero.
+    f1 = 2 * (precision * recall) / (precision +
+                                     recall) if (precision + recall) > 0 else 0
+
+    confusion_matrix = np.array([[TN, FP], [FN, TP]])
+
+    return {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1,
+        'confusion_matrix': confusion_matrix
+    }
+
+
 if __name__ == "__main__":
-    load_and_preprocess_data()
+    # 1. Load and preprocess data
+    X_train, X_test, y_train, y_test = load_and_preprocess_data()
+
+    # 2. Convert to numpy arrays (fit expects numpy arrays)
+    X_train_np = X_train.values
+    X_test_np = X_test.values
+    y_train_np = y_train.values
+    y_test_np = y_test.values
+
+    # 3. Train the model
+    weights, bias, cost_history = fit(
+        X_train_np,
+        y_train_np,
+        learning_rate=0.01,
+        n_iterations=1000
+    )
+
+    # 4. Make predictions
+    y_train_pred = predict(X_train_np, weights, bias)
+    y_test_pred = predict(X_test_np, weights, bias)
+
+    # 5. Evaluate performance
+    print("\n--- Training Set Metrics ---")
+    train_metrics = calculate_metrics(y_train_np, y_train_pred)
+    print(f"Accuracy:  {train_metrics['accuracy']:.4f}")
+    print(f"Precision: {train_metrics['precision']:.4f}")
+    print(f"Recall:    {train_metrics['recall']:.4f}")
+    print(f"F1 Score:  {train_metrics['f1_score']:.4f}")
+
+    print("\n--- Test Set Metrics ---")
+    test_metrics = calculate_metrics(y_test_np, y_test_pred)
+    print(f"Accuracy:  {test_metrics['accuracy']:.4f}")
+    print(f"Precision: {test_metrics['precision']:.4f}")
+    print(f"Recall:    {test_metrics['recall']:.4f}")
+    print(f"F1 Score:  {test_metrics['f1_score']:.4f}")
+
+    # 6. Plot cost history
+    plt.figure(figsize=(10, 6))
+    plt.plot(cost_history)
+    plt.xlabel('Iteration')
+    plt.ylabel('Cost')
+    plt.title('Cost vs Iterations')
+    plt.grid(True)
+    plt.show()
