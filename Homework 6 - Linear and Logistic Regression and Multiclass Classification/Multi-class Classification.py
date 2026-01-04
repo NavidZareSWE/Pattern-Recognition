@@ -28,7 +28,6 @@ def one_hot_encode(y, classes):
 # #############################################################################
 
 def one_vs_all_fit(X, y, learning_rate=0.01, n_iterations=1000):
-    """Train K binary classifiers (one per class)."""
     classes = np.unique(y)
     classifiers = {}
 
@@ -42,22 +41,21 @@ def one_vs_all_fit(X, y, learning_rate=0.01, n_iterations=1000):
     return {'classifiers': classifiers, 'classes': classes}
 
 
-def one_vs_all_predict_proba(X, model):
-    """Get probability for each class."""
+def one_vs_all_predict_prob(X, model):
     classes = model['classes']
-    probas = np.zeros((X.shape[0], len(classes)))
+    # Shape: (n_samples, n_classes)
+    probs = np.zeros((X.shape[0], len(classes)))
 
     for idx, c in enumerate(classes):
+        # "class c vs all others"
         clf = model['classifiers'][c]
-        probas[:, idx] = predict_prob(X, clf['weights'], clf['bias'])
-
-    return probas
+        probs[:, idx] = predict_prob(X, clf['weights'], clf['bias'])
+    return probs
 
 
 def one_vs_all_predict(X, model):
-    """Predict class with highest probability."""
-    probas = one_vs_all_predict_proba(X, model)
-    return model['classes'][np.argmax(probas, axis=1)]
+    probs = one_vs_all_predict_prob(X, model)
+    return model['classes'][np.argmax(probs, axis=1)]
 
 
 # #############################################################################
@@ -65,7 +63,6 @@ def one_vs_all_predict(X, model):
 # #############################################################################
 
 def one_vs_one_fit(X, y, learning_rate=0.01, n_iterations=1000):
-    """Train K(K-1)/2 binary classifiers."""
     classes = np.unique(y)
     classifiers = {}
 
@@ -74,9 +71,10 @@ def one_vs_one_fit(X, y, learning_rate=0.01, n_iterations=1000):
             class_i, class_j = classes[i], classes[j]
             print(f"\nTraining classifier: {class_i} vs {class_j}")
 
-            mask = (y == class_i) | (y == class_j)
-            X_pair = X[mask]
-            y_binary = (y[mask] == class_i).astype(int)
+            # Boolean Logic to select ONLY samples from these two classes
+            bool_logic = (y == class_i) | (y == class_j)
+            X_pair = X[bool_logic]
+            y_binary = (y[bool_logic] == class_i).astype(int)
 
             weights, bias, _ = fit(
                 X_pair, y_binary, learning_rate, n_iterations)
@@ -87,8 +85,8 @@ def one_vs_one_fit(X, y, learning_rate=0.01, n_iterations=1000):
 
 
 def one_vs_one_predict(X, model):
-    """Predict using voting."""
     classes = model['classes']
+    # Shape: (n_samples, n_classes)
     votes = np.zeros((X.shape[0], len(classes)))
 
     for (class_i, class_j), clf in model['classifiers'].items():
@@ -97,6 +95,7 @@ def one_vs_one_predict(X, model):
         idx_i = np.where(classes == class_i)[0][0]
         idx_j = np.where(classes == class_j)[0][0]
 
+        # ex:  Classifier (0, 1) predicts: [1, 0, 1]
         votes[:, idx_i] += preds
         votes[:, idx_j] += (1 - preds)
 
@@ -107,12 +106,11 @@ def one_vs_one_predict(X, model):
 # Softmax Regression
 # #############################################################################
 
-def softmax_fit(X, y, learning_rate=0.1, n_iterations=1000, verbose=True):
+def softmax_fit(X, y, learning_rate=0.1, n_iterations=1000):
     classes = np.unique(y)
     n_samples, n_features = X.shape
     n_classes = len(classes)
 
-    # weights shape: (n_classes, n_features) to match softmax(theta, X)
     weights = np.zeros((n_classes, n_features))
     cost_history = []
 
@@ -120,14 +118,11 @@ def softmax_fit(X, y, learning_rate=0.1, n_iterations=1000, verbose=True):
 
     print("\n--- Training Softmax Regression ---")
     for i in range(n_iterations):
-
         y_pred = softmax(weights, X)
 
-        # Gradients
-        error = y_pred - y_one_hot  # (n_samples, n_classes)
-        dw = (1 / n_samples) * np.dot(error.T, X)  # (n_classes, n_features)
-
-        # Update
+        # Gradient
+        error = y_pred - y_one_hot
+        dw = (1 / n_samples) * np.dot(error.T, X)
         weights -= learning_rate * dw
 
         # Cost
@@ -137,7 +132,7 @@ def softmax_fit(X, y, learning_rate=0.1, n_iterations=1000, verbose=True):
         )
         cost_history.append(cost)
 
-        if verbose and i % 100 == 0:
+        if i % 100 == 0:
             print(f"Iteration {i}: Cost = {cost:.6f}")
 
     return {
@@ -147,12 +142,12 @@ def softmax_fit(X, y, learning_rate=0.1, n_iterations=1000, verbose=True):
     }
 
 
-def softmax_predict_proba(X, model):
+def softmax_predict_prob(X, model):
     return softmax(model['weights'], X)
 
 
 def softmax_predict(X, model):
-    probas = softmax_predict_proba(X, model)
+    probas = softmax_predict_prob(X, model)
     return model['classes'][np.argmax(probas, axis=1)]
 
 
