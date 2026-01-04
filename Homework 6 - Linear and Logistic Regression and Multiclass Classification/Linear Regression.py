@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from plots import (plot_scatter_features_vs_mpg, plot_bgd_cost,
+                   plot_bgd_cost_multiple_lr, plot_regression_line,
+                   plot_sgd_cost, plot_sgd_cost_multiple_lr,
+                   plot_bgd_vs_sgd_comparison, plot_all_methods_comparison)
 # import os
 
 
@@ -49,6 +52,9 @@ def load_and_preprocess_data():
     correlation = np.corrcoef(weight, mpg)[0, 1]
     print("\n--- Correlation Analysis ---")
     print(f"Correlation (weight vs mpg): {correlation:.4f}")
+
+    # 1.2.6 Scatter plots
+    plot_scatter_features_vs_mpg(data)
 
     # 1.3-1 Retain X & Y
     X = data['weight'].values
@@ -140,7 +146,6 @@ def closed_form_solution(X, y):
 if __name__ == "__main__":
     X_train_norm, X_test_norm, y_train, y_test = load_and_preprocess_data()
 
-    # Batch Gradient Descent
     theta_0_bgd, theta_1_bgd, cost_history = batch_gradient_descent(
         X_train_norm, y_train,
         learning_rate=0.1,
@@ -152,7 +157,16 @@ if __name__ == "__main__":
     print(f"theta_0 (intercept): {theta_0_bgd:.4f}")
     print(f"theta_1 (slope): {theta_1_bgd:.4f}")
 
-    # Stochastic Gradient Descent
+    #  1.3.2 Plot cost vs iterations
+    plot_bgd_cost(cost_history, learning_rate=0.1)
+
+    #  1.3.3 Experiment with different learning rates
+    plot_bgd_cost_multiple_lr(X_train_norm, y_train, batch_gradient_descent)
+
+    # 1.3.5: Plot regression line
+    plot_regression_line(X_train_norm, X_test_norm, y_train, y_test,
+                         theta_0_bgd, theta_1_bgd, 'BGD')
+
     theta_0_sgd, theta_1_sgd, cost_sgd = stochastic_gradient_descent(
         X_train_norm, y_train,
         learning_rate=0.01,
@@ -164,10 +178,60 @@ if __name__ == "__main__":
     print(f"theta_0 (intercept): {theta_0_sgd:.4f}")
     print(f"theta_1 (slope): {theta_1_sgd:.4f}")
 
-    # Closed Form Solution
+    #  1.3.3 Plot cost over epochs
+    plot_sgd_cost(cost_sgd, learning_rate=0.01)
+
+    #  1.3.4 Experiment with different learning rates
+    plot_sgd_cost_multiple_lr(X_train_norm, y_train,
+                              stochastic_gradient_descent)
+
+    #  1.3.5 Plot regression line
+    plot_regression_line(X_train_norm, X_test_norm, y_train, y_test,
+                         theta_0_sgd, theta_1_sgd, 'SGD')
+
+    #  1.3 BGD vs SGD COMPARISON
+    y_pred_bgd = theta_0_bgd + theta_1_bgd * X_train_norm
+    final_cost_bgd = (1 / (2 * len(y_train))) * \
+        np.sum((y_pred_bgd - y_train) ** 2)
+
+    y_pred_sgd = theta_0_sgd + theta_1_sgd * X_train_norm
+    final_cost_sgd = (1 / (2 * len(y_train))) * \
+        np.sum((y_pred_sgd - y_train) ** 2)
+
+    print("\n--- BGD vs SGD Comparison ---")
+    print(f"{'Metric':<25} {'BGD':>15} {'SGD':>15}")
+    print("-" * 55)
+    print(f"{'theta_0 (intercept)':<25} {theta_0_bgd:>15.4f} {theta_0_sgd:>15.4f}")
+    print(f"{'theta_1 (slope)':<25} {theta_1_bgd:>15.4f} {theta_1_sgd:>15.4f}")
+    print(f"{'Final Cost (MSE)':<25} {final_cost_bgd:>15.6f} {final_cost_sgd:>15.6f}")
+
+    plot_bgd_vs_sgd_comparison(X_train_norm, X_test_norm, y_train, y_test,
+                               theta_0_bgd, theta_1_bgd, cost_history,
+                               theta_0_sgd, theta_1_sgd, cost_sgd)
+
     [theta_0_cf, theta_1_cf] = closed_form_solution(X_train_norm, y_train)
 
     print("\n--- Closed-Form Solution Results ---")
     print(f"Learned parameters:")
     print(f"theta_0 (intercept): {theta_0_cf:.4f}")
     print(f"theta_1 (slope): {theta_1_cf:.4f}")
+
+    plot_regression_line(X_train_norm, X_test_norm, y_train, y_test,
+                         theta_0_cf, theta_1_cf, 'Closed-Form')
+
+    # 1.3.D.3: ALL METHODS COMPARISON
+    y_pred_cf = theta_0_cf + theta_1_cf * X_train_norm
+    final_cost_cf = (1 / (2 * len(y_train))) * \
+        np.sum((y_pred_cf - y_train) ** 2)
+
+    print("\n--- All Methods Comparison ---")
+    print(f"{'Method':<15} {'theta_0':>12} {'theta_1':>12} {'Final Cost':>15}")
+    print("-" * 55)
+    print(f"{'Closed-Form':<15} {theta_0_cf:>12.4f} {theta_1_cf:>12.4f} {final_cost_cf:>15.6f}")
+    print(f"{'Batch GD':<15} {theta_0_bgd:>12.4f} {theta_1_bgd:>12.4f} {final_cost_bgd:>15.6f}")
+    print(f"{'Stochastic GD':<15} {theta_0_sgd:>12.4f} {theta_1_sgd:>12.4f} {final_cost_sgd:>15.6f}")
+
+    plot_all_methods_comparison(X_train_norm, X_test_norm, y_train, y_test,
+                                theta_0_bgd, theta_1_bgd,
+                                theta_0_sgd, theta_1_sgd,
+                                theta_0_cf, theta_1_cf)

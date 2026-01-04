@@ -1,7 +1,59 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from logistic_regression import fit, predict_prob, predict
+from plots import (plot_ova_cost_functions, plot_ovo_cost_functions,
+                   plot_softmax_cost, plot_multiclass_accuracy_comparison,
+                   plot_multiclass_cost_comparison, plot_outlier_impact)
+
+
+def train_test_split(X, y, test_size=0.2, random_state=42, stratify=None):
+    np.random.seed(random_state)
+
+    n_samples = len(X)
+
+    if stratify is None:
+        # Original non-stratified logic
+        n_test = int(n_samples * test_size)
+        indices = np.arange(n_samples)
+        np.random.shuffle(indices)
+
+        test_indices = indices[:n_test]
+        train_indices = indices[n_test:]
+    else:
+        # Stratified splitting
+        train_indices = []
+        test_indices = []
+
+        # Get unique classes
+        unique_classes = np.unique(stratify)
+
+        for cls in unique_classes:
+            # Get indices for this class
+            cls_indices = np.where(stratify == cls)[0]
+
+            # Shuffle indices for this class
+            np.random.shuffle(cls_indices)
+
+            # Calculate number of test samples for this class
+            n_cls_test = int(len(cls_indices) * test_size)
+
+            # Ensure at least 1 sample in test if class has samples
+            if n_cls_test == 0 and len(cls_indices) > 1:
+                n_cls_test = 1
+
+            # Split this class's indices
+            test_indices.extend(cls_indices[:n_cls_test])
+            train_indices.extend(cls_indices[n_cls_test:])
+
+        # Convert to numpy arrays and shuffle to mix classes
+        train_indices = np.array(train_indices)
+        test_indices = np.array(test_indices)
+
+        np.random.shuffle(train_indices)
+        np.random.shuffle(test_indices)
+
+    return (X[train_indices], X[test_indices],
+            y[train_indices], y[test_indices])
 
 
 def softmax(theta, X):
@@ -30,15 +82,18 @@ def one_hot_encode(y, classes):
 def one_vs_all_fit(X, y, learning_rate=0.01, n_iterations=1000):
     classes = np.unique(y)
     classifiers = {}
+    cost_histories = {}
 
     for c in classes:
         print(f"\nTraining classifier for class {c}...")
         y_binary = (y == c).astype(int)
 
-        weights, bias, _ = fit(X, y_binary, learning_rate, n_iterations)
+        weights, bias, cost_history = fit(
+            X, y_binary, learning_rate, n_iterations)
         classifiers[c] = {'weights': weights, 'bias': bias}
+        cost_histories[c] = cost_history
 
-    return {'classifiers': classifiers, 'classes': classes}
+    return {'classifiers': classifiers, 'classes': classes, 'cost_histories': cost_histories}
 
 
 def one_vs_all_predict_prob(X, model):
@@ -65,6 +120,7 @@ def one_vs_all_predict(X, model):
 def one_vs_one_fit(X, y, learning_rate=0.01, n_iterations=1000):
     classes = np.unique(y)
     classifiers = {}
+    cost_histories = {}
 
     for i in range(len(classes)):
         for j in range(i + 1, len(classes)):
@@ -76,12 +132,13 @@ def one_vs_one_fit(X, y, learning_rate=0.01, n_iterations=1000):
             X_pair = X[bool_logic]
             y_binary = (y[bool_logic] == class_i).astype(int)
 
-            weights, bias, _ = fit(
+            weights, bias, cost_history = fit(
                 X_pair, y_binary, learning_rate, n_iterations)
             classifiers[(class_i, class_j)] = {
                 'weights': weights, 'bias': bias}
+            cost_histories[(class_i, class_j)] = cost_history
 
-    return {'classifiers': classifiers, 'classes': classes}
+    return {'classifiers': classifiers, 'classes': classes, 'cost_histories': cost_histories}
 
 
 def one_vs_one_predict(X, model):
@@ -238,7 +295,7 @@ def detect_and_remove_outliers(X_train, X_test, y_train, y_test, threshold=2.75)
     return X_train, X_test, y_train, y_test
 
 
-def load_and_preprocess_data():
+def load_and_preprocess_data(remove_outliers=True):
     data = pd.read_csv('wine_dataset.csv')
 
     # 3.2-1 Feature statistics
@@ -258,7 +315,6 @@ def load_and_preprocess_data():
     X = data.drop('class_label', axis=1).values
     y = data['class_label'].values
 
-    from sklearn.model_selection import train_test_split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=42, stratify=y
     )
@@ -271,9 +327,10 @@ def load_and_preprocess_data():
         X_train, X_test, y_train, y_test
     )
     # 3.2-5 Detect and remove outliers
-    X_train, X_test, y_train, y_test = detect_and_remove_outliers(
-        X_train, X_test, y_train, y_test, threshold=2.75
-    )
+    if remove_outliers:
+        X_train, X_test, y_train, y_test = detect_and_remove_outliers(
+            X_train, X_test, y_train, y_test, threshold=2.75
+        )
 
     # 3.2-6 Normalize using min-max normalization
     print("\n--- Normalization (Min-Max) ---")
@@ -289,43 +346,196 @@ def load_and_preprocess_data():
 
 
 if __name__ == "__main__":
-    X_train_norm, X_test_norm, y_train, y_test = load_and_preprocess_data()
 
+    # =========================================================================
+    # TRAINING WITHOUT OUTLIERS (Default)
+    # =========================================================================
+    print("\n" + "=" * 60)
+    print("TRAINING WITH OUTLIERS REMOVED")
+    print("=" * 60)
+
+    X_train_norm, X_test_norm, y_train, y_test = load_and_preprocess_data(
+        remove_outliers=True)
+
+    # -------------------------------------------------------------------------
     # One-vs-All
+    # -------------------------------------------------------------------------
     print("\n" + "=" * 50)
     print("METHOD 1: ONE-VS-ALL")
     print("=" * 50)
     ova_model = one_vs_all_fit(
         X_train_norm, y_train, learning_rate=0.1, n_iterations=1000)
+
+    # Training accuracy
+    ova_train_pred = one_vs_all_predict(X_train_norm, ova_model)
+    ova_train_acc = accuracy(y_train, ova_train_pred)
+
+    # Test accuracy
     ova_pred = one_vs_all_predict(X_test_norm, ova_model)
     ova_acc = accuracy(y_test, ova_pred)
-    print(f"\nOvA Test Accuracy: {ova_acc:.4f}")
 
+    print(f"\nOvA Training Accuracy: {ova_train_acc:.4f}")
+    print(f"OvA Test Accuracy: {ova_acc:.4f}")
+
+    # Plot OvA cost functions
+    plot_ova_cost_functions(ova_model['cost_histories'], ova_model['classes'])
+
+    # Report convergence iterations for OvA
+    print("\n--- OvA Convergence Report ---")
+    print(f"{'Classifier':<20} {'Convergence Iteration':>25} {'Final Cost':>15}")
+    print("-" * 60)
+    for c in ova_model['classes']:
+        cost_hist = ova_model['cost_histories'][c]
+        # Find convergence (when cost change < threshold)
+        conv_iter = len(cost_hist)
+        for i in range(1, len(cost_hist)):
+            if abs(cost_hist[i] - cost_hist[i-1]) < 1e-6:
+                conv_iter = i
+                break
+        print(
+            f"Class {c} vs All{'':<8} {conv_iter:>25} {cost_hist[-1]:>15.6f}")
+
+    # -------------------------------------------------------------------------
     # One-vs-One
+    # -------------------------------------------------------------------------
     print("\n" + "=" * 50)
     print("METHOD 2: ONE-VS-ONE")
     print("=" * 50)
     ovo_model = one_vs_one_fit(
         X_train_norm, y_train, learning_rate=0.1, n_iterations=1000)
+
+    # Training accuracy
+    ovo_train_pred = one_vs_one_predict(X_train_norm, ovo_model)
+    ovo_train_acc = accuracy(y_train, ovo_train_pred)
+
+    # Test accuracy
     ovo_pred = one_vs_one_predict(X_test_norm, ovo_model)
     ovo_acc = accuracy(y_test, ovo_pred)
-    print(f"\nOvO Test Accuracy: {ovo_acc:.4f}")
 
+    print(f"\nOvO Training Accuracy: {ovo_train_acc:.4f}")
+    print(f"OvO Test Accuracy: {ovo_acc:.4f}")
+
+    # Plot OvO cost functions
+    plot_ovo_cost_functions(ovo_model['cost_histories'])
+
+    # Report convergence iterations for OvO
+    print("\n--- OvO Convergence Report ---")
+    print(f"{'Classifier':<20} {'Convergence Iteration':>25} {'Final Cost':>15}")
+    print("-" * 60)
+    for pair, cost_hist in ovo_model['cost_histories'].items():
+        conv_iter = len(cost_hist)
+        for i in range(1, len(cost_hist)):
+            if abs(cost_hist[i] - cost_hist[i-1]) < 1e-6:
+                conv_iter = i
+                break
+        print(
+            f"{pair[0]} vs {pair[1]}{'':<12} {conv_iter:>25} {cost_hist[-1]:>15.6f}")
+
+    # -------------------------------------------------------------------------
     # Softmax
+    # -------------------------------------------------------------------------
     print("\n" + "=" * 50)
     print("METHOD 3: SOFTMAX REGRESSION")
     print("=" * 50)
     softmax_model = softmax_fit(
         X_train_norm, y_train, learning_rate=0.1, n_iterations=1000)
+
+    # Training accuracy
+    softmax_train_pred = softmax_predict(X_train_norm, softmax_model)
+    softmax_train_acc = accuracy(y_train, softmax_train_pred)
+
+    # Test accuracy
     softmax_pred = softmax_predict(X_test_norm, softmax_model)
     softmax_acc = accuracy(y_test, softmax_pred)
-    print(f"\nSoftmax Test Accuracy: {softmax_acc:.4f}")
 
+    print(f"\nSoftmax Training Accuracy: {softmax_train_acc:.4f}")
+    print(f"Softmax Test Accuracy: {softmax_acc:.4f}")
+
+    # Plot softmax cost
+    plot_softmax_cost(softmax_model['cost_history'])
+
+    # Report convergence for Softmax
+    print("\n--- Softmax Convergence Report ---")
+    cost_hist = softmax_model['cost_history']
+    conv_iter = len(cost_hist)
+    for i in range(1, len(cost_hist)):
+        if abs(cost_hist[i] - cost_hist[i-1]) < 1e-6:
+            conv_iter = i
+            break
+    print(f"Convergence Iteration: {conv_iter}")
+    print(f"Final Cost: {cost_hist[-1]:.6f}")
+
+    # -------------------------------------------------------------------------
+    # Task 3.3.5: Comparison
+    # -------------------------------------------------------------------------
     print("\n" + "=" * 50)
-    print("COMPARISON")
+    print("COMPARISON (Task 3.3.5)")
     print("=" * 50)
-    print(f"\n{'Method':<20} {'Accuracy':>10}")
-    print("-" * 30)
-    print(f"{'One-vs-All':<20} {ova_acc:>10.4f}")
-    print(f"{'One-vs-One':<20} {ovo_acc:>10.4f}")
-    print(f"{'Softmax':<20} {softmax_acc:>10.4f}")
+
+    print(f"\n{'Method':<20} {'Train Acc':>12} {'Test Acc':>12}")
+    print("-" * 45)
+    print(f"{'One-vs-All':<20} {ova_train_acc:>12.4f} {ova_acc:>12.4f}")
+    print(f"{'One-vs-One':<20} {ovo_train_acc:>12.4f} {ovo_acc:>12.4f}")
+    print(f"{'Softmax':<20} {softmax_train_acc:>12.4f} {softmax_acc:>12.4f}")
+
+    # Plot accuracy comparison
+    plot_multiclass_accuracy_comparison(ova_acc, ovo_acc, softmax_acc)
+
+    # Plot cost convergence comparison
+    plot_multiclass_cost_comparison(
+        ova_model['cost_histories'],
+        ovo_model['cost_histories'],
+        softmax_model['cost_history'],
+        ova_model['classes']
+    )
+
+    # Computational complexity comparison
+    n_classes = len(ova_model['classes'])
+    print(f"\n--- Computational Complexity ---")
+    print(f"Number of classes: {n_classes}")
+    print(f"{'Method':<20} {'Binary Classifiers':>20}")
+    print("-" * 45)
+    print(f"{'One-vs-All':<20} {n_classes:>20}")
+    print(f"{'One-vs-One':<20} {n_classes * (n_classes - 1) // 2:>20}")
+    print(f"{'Softmax':<20} {'1 (multi-class)':>20}")
+
+    # =========================================================================
+    # Task 3.3.6: TRAINING WITH OUTLIERS (for comparison)
+    # =========================================================================
+    print("\n" + "=" * 60)
+    print("TASK 3.3.6: OUTLIER IMPACT EVALUATION")
+    print("=" * 60)
+    print("\nTraining WITH outliers (no removal)...")
+
+    X_train_with, X_test_with, y_train_with, y_test_with = load_and_preprocess_data(
+        remove_outliers=False)
+
+    # OvA with outliers
+    ova_model_with = one_vs_all_fit(
+        X_train_with, y_train_with, learning_rate=0.1, n_iterations=1000)
+    ova_pred_with = one_vs_all_predict(X_test_with, ova_model_with)
+    ova_acc_with = accuracy(y_test_with, ova_pred_with)
+
+    # OvO with outliers
+    ovo_model_with = one_vs_one_fit(
+        X_train_with, y_train_with, learning_rate=0.1, n_iterations=1000)
+    ovo_pred_with = one_vs_one_predict(X_test_with, ovo_model_with)
+    ovo_acc_with = accuracy(y_test_with, ovo_pred_with)
+
+    # Softmax with outliers
+    softmax_model_with = softmax_fit(
+        X_train_with, y_train_with, learning_rate=0.1, n_iterations=1000)
+    softmax_pred_with = softmax_predict(X_test_with, softmax_model_with)
+    softmax_acc_with = accuracy(y_test_with, softmax_pred_with)
+
+    print("\n--- Outlier Impact Comparison ---")
+    print(f"{'Method':<20} {'With Outliers':>15} {'Without Outliers':>18} {'Difference':>12}")
+    print("-" * 70)
+    print(f"{'One-vs-All':<20} {ova_acc_with:>15.4f} {ova_acc:>18.4f} {ova_acc - ova_acc_with:>+12.4f}")
+    print(f"{'One-vs-One':<20} {ovo_acc_with:>15.4f} {ovo_acc:>18.4f} {ovo_acc - ovo_acc_with:>+12.4f}")
+    print(f"{'Softmax':<20} {softmax_acc_with:>15.4f} {softmax_acc:>18.4f} {softmax_acc - softmax_acc_with:>+12.4f}")
+
+    # Plot outlier impact
+    acc_with_outliers = (ova_acc_with, ovo_acc_with, softmax_acc_with)
+    acc_without_outliers = (ova_acc, ovo_acc, softmax_acc)
+    plot_outlier_impact(acc_with_outliers, acc_without_outliers)
