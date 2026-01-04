@@ -1,6 +1,58 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from plots import (plot_feature_histograms, plot_logistic_cost,
+                   plot_logistic_cost_multiple_lr, plot_confusion_matrix)
+
+
+def train_test_split(X, y, test_size=0.2, random_state=42, stratify=None):
+    np.random.seed(random_state)
+
+    n_samples = len(X)
+
+    if stratify is None:
+        # Original non-stratified logic
+        n_test = int(n_samples * test_size)
+        indices = np.arange(n_samples)
+        np.random.shuffle(indices)
+
+        test_indices = indices[:n_test]
+        train_indices = indices[n_test:]
+    else:
+        # Stratified splitting
+        train_indices = []
+        test_indices = []
+
+        # Get unique classes
+        unique_classes = np.unique(stratify)
+
+        for cls in unique_classes:
+            # Get indices for this class
+            cls_indices = np.where(stratify == cls)[0]
+
+            # Shuffle indices for this class
+            np.random.shuffle(cls_indices)
+
+            # Calculate number of test samples for this class
+            n_cls_test = int(len(cls_indices) * test_size)
+
+            # Ensure at least 1 sample in test if class has samples
+            if n_cls_test == 0 and len(cls_indices) > 1:
+                n_cls_test = 1
+
+            # Split this class's indices
+            test_indices.extend(cls_indices[:n_cls_test])
+            train_indices.extend(cls_indices[n_cls_test:])
+
+        # Convert to numpy arrays and shuffle to mix classes
+        train_indices = np.array(train_indices)
+        test_indices = np.array(test_indices)
+
+        np.random.shuffle(train_indices)
+        np.random.shuffle(test_indices)
+
+    return (X[train_indices], X[test_indices],
+            y[train_indices], y[test_indices])
 
 
 def encode_categorical(data):
@@ -40,39 +92,48 @@ def encode_categorical(data):
     return data_encoded
 
 
-def filter_features_by_covariance(data_encoded):
-    X = data_encoded.drop('y', axis=1)
-    # Reson for Transpose:
+def filter_features_by_correlation(data_encoded):
+    # Reason for Transpose:
     # A 1-D or 2-D array containing multiple variables and observations.
     # Each row of m represents a variable, and each column a single
     # observation of all those variables. Also see rowvar below.
     # Read More: https://numpy.org/doc/stable/reference/generated/numpy.cov.html
-    cov_matrix = np.cov(X.T)
-    num_features = cov_matrix.shape[0]
-    feature_covariances = {}
+    cov_matrix = np.cov(data_encoded.values.T)
+    std_devs = np.sqrt(np.diag(cov_matrix))
+    std_devs[std_devs == 0] = 1     # Avoid division by zero
+    corr_matrix = cov_matrix / np.outer(std_devs, std_devs)
+
+    # Get correlations with y (last row)
+    y_index = data_encoded.columns.get_loc('y')
+    correlations_with_y = corr_matrix[y_index, :]
+
+    num_features = len(data_encoded.columns)
+    feature_correlations = {}
 
     for i in range(num_features):
-        upper_triangle_row = cov_matrix[i, i+1:]
-        el_2 = i + 1
-        for j, cov_value in enumerate(upper_triangle_row):
-            feature_pair = (i, el_2)
-            feature_covariances[feature_pair] = abs(cov_value)
-            el_2 += 1
+        if i == y_index:  # Skip y itself
+            continue
+        feature_correlations[i] = abs(correlations_with_y[i])
 
-    sorted_pairs = sorted(
-        feature_covariances.items(),
+    sorted_features = sorted(
+        feature_correlations.items(),
         key=lambda x: x[1],
         reverse=True
     )
-    unique_features = set()
-    for rank, (pair, cov_val) in enumerate(sorted_pairs[:7]):
-        feature_i, feature_j = pair
-        feature_name_i = data_encoded.columns[feature_i]
-        feature_name_j = data_encoded.columns[feature_j]
-        unique_features.add(feature_name_i)
-        unique_features.add(feature_name_j)
 
+    print("\n--- Feature Correlations with Target (y) ---")
+    print(f"{'Rank':<6} {'Feature':<25} {'|Correlation|':>15}")
+    print("-" * 50)
+    for rank, (feature_i, corr_val) in enumerate(sorted_features, 1):
+        feature_name = data_encoded.columns[feature_i]
+        print(f"{rank:<6} {feature_name:<25} {corr_val:>15.4f}")
+
+    unique_features = set()
+    for rank, (feature_i, corr_val) in enumerate(sorted_features[:7]):
+        feature_name_i = data_encoded.columns[feature_i]
+        unique_features.add(feature_name_i)
     top_features = list(unique_features)
+
     data_selected = data_encoded[top_features + ['y']]
 
     return data_selected
@@ -131,18 +192,36 @@ def load_and_preprocess_data():
     print(f"Result: {'Imbalanced' if ratio > 2 else 'Balanced'}")
 
     # 2.2-6 Feature Selection via Correlation Analysis
-    data_selected = filter_features_by_covariance(data_encoded)
+    data_selected = filter_features_by_correlation(data_encoded)
+
+    print("\n--- Duplicate Check ---")
+    duplicates = data_selected.duplicated().sum()
+    print(f"Duplicates found: {duplicates}")
+    if duplicates > 0:
+        data_selected = data_selected.drop_duplicates()
+        print(f"Duplicates removed. New shape: {data_selected.shape}")
 
     # 2.2-7 Standardization of Numerical Features
     data_standardized = standardize_features(data_selected)
 
+    # 2.2.8: Plot histograms
+
+    numerical_cols = ['duration', 'pdays', 'previous',
+                      'balance', 'day', 'age', 'campaign']
+    # Filter to only include columns that exist in data_standardized
+    numerical_cols = [
+        col for col in numerical_cols if col in data_standardized.columns]
+    if numerical_cols:
+        plot_feature_histograms(data_standardized, numerical_cols)
+
     # 2.2-9 Split into training and testing sets
     # Extract features and labels from standardized data
-    from sklearn.model_selection import train_test_split
     X = data_standardized.drop('y', axis=1)
     y = data_standardized['y']
+    feature_names = X.columns.tolist()
+    # Convert to numpy for train_test_split function
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y)
+        X.values, y.values, test_size=0.2, random_state=42, stratify=y.values)
 
     print("\n" + "=" * 40)
     print("         TRAIN-TEST SPLIT")
@@ -155,7 +234,7 @@ def load_and_preprocess_data():
     print(f"  {'y_test':<12} {y_test.shape[0]:>10,} {'-':>10}")
     print("=" * 40)
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, feature_names
 
 
 def sigmoid(z):
@@ -255,46 +334,56 @@ def calculate_metrics(y_true, y_pred):
 
 if __name__ == "__main__":
     # 1. Load and preprocess data
-    X_train, X_test, y_train, y_test = load_and_preprocess_data()
+    X_train, X_test, y_train, y_test, feature_names = load_and_preprocess_data()
 
-    # 2. Convert to numpy arrays (fit expects numpy arrays)
-    X_train_np = X_train.values
-    X_test_np = X_test.values
-    y_train_np = y_train.values
-    y_test_np = y_test.values
-
-    # 3. Train the model
+    # 2. Train the model
     weights, bias, cost_history = fit(
-        X_train_np,
-        y_train_np,
+        X_train,
+        y_train,
         learning_rate=0.01,
         n_iterations=1000
     )
 
-    # 4. Make predictions
-    y_train_pred = predict(X_train_np, weights, bias)
-    y_test_pred = predict(X_test_np, weights, bias)
+    # Task 2.3.2: Plot cost function
+    plot_logistic_cost(cost_history, learning_rate=0.01)
 
-    # 5. Evaluate performance
+    # Task 2.3.3: Experiment with different learning rates and iterations
+    plot_logistic_cost_multiple_lr(X_train, y_train, fit)
+
+    # Task 2.3.4: Report all learned parameters
+    print("\n--- Learned Model Parameters (Task 2.3.4) ---")
+    print(f"Bias (theta_0): {bias:.6f}")
+    print(f"\nFeature Weights:")
+    print(f"{'Index':<8} {'Feature':<25} {'Weight':>15}")
+    print("-" * 50)
+    for i, (col, w) in enumerate(zip(feature_names, weights)):
+        print(f"{i:<8} {col:<25} {w:>15.6f}")
+
+    # 3. Make predictions
+    y_train_pred = predict(X_train, weights, bias)
+    y_test_pred = predict(X_test, weights, bias)
+
+    # 4. Evaluate performance
     print("\n--- Training Set Metrics ---")
-    train_metrics = calculate_metrics(y_train_np, y_train_pred)
+    train_metrics = calculate_metrics(y_train, y_train_pred)
     print(f"Accuracy:  {train_metrics['accuracy']:.4f}")
     print(f"Precision: {train_metrics['precision']:.4f}")
     print(f"Recall:    {train_metrics['recall']:.4f}")
     print(f"F1 Score:  {train_metrics['f1_score']:.4f}")
 
     print("\n--- Test Set Metrics ---")
-    test_metrics = calculate_metrics(y_test_np, y_test_pred)
+    test_metrics = calculate_metrics(y_test, y_test_pred)
     print(f"Accuracy:  {test_metrics['accuracy']:.4f}")
     print(f"Precision: {test_metrics['precision']:.4f}")
     print(f"Recall:    {test_metrics['recall']:.4f}")
     print(f"F1 Score:  {test_metrics['f1_score']:.4f}")
 
-    # 6. Plot cost history
-    plt.figure(figsize=(10, 6))
-    plt.plot(cost_history)
-    plt.xlabel('Iteration')
-    plt.ylabel('Cost')
-    plt.title('Cost vs Iterations')
-    plt.grid(True)
-    plt.show()
+    # Task 2.3.6: Confusion Matrix
+    print("\n--- Confusion Matrix (Test Set) ---")
+    cm = test_metrics['confusion_matrix']
+    print(f"{'':>20} {'Predicted 0':>15} {'Predicted 1':>15}")
+    print(f"{'Actual 0':<20} {cm[0, 0]:>15} {cm[0, 1]:>15}")
+    print(f"{'Actual 1':<20} {cm[1, 0]:>15} {cm[1, 1]:>15}")
+
+    # Plot confusion matrix
+    plot_confusion_matrix(y_test, y_test_pred)

@@ -80,7 +80,7 @@ def plot_bgd_cost(cost_history, learning_rate):
 
 def plot_bgd_cost_multiple_lr(X_train, y_train, bgd_func):
     """
-    Task 1.3.A.3: Experiment with different learning rates for BGD
+    Task 1.3.A.3: Experiment with different learning rates AND iterations for BGD
 
     Args:
         X_train: normalized training features
@@ -88,28 +88,32 @@ def plot_bgd_cost_multiple_lr(X_train, y_train, bgd_func):
         bgd_func: your batch_gradient_descent function
     """
     learning_rates = [0.001, 0.01, 0.1, 0.5]
+    iterations_list = [500, 1000]
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    axes = axes.flatten()
+    fig, axes = plt.subplots(len(iterations_list), len(
+        learning_rates), figsize=(18, 10))
 
-    for idx, lr in enumerate(learning_rates):
-        _, _, cost_history = bgd_func(
-            X_train, y_train, learning_rate=lr, n_iterations=1000)
+    for row, n_iter in enumerate(iterations_list):
+        for col, lr in enumerate(learning_rates):
+            _, _, cost_history = bgd_func(
+                X_train, y_train, learning_rate=lr, n_iterations=n_iter)
 
-        ax = axes[idx]
-        ax.plot(cost_history, linewidth=2)
-        ax.set_xlabel('Iteration')
-        ax.set_ylabel('Cost (MSE)')
-        ax.set_title(f'BGD Cost (lr = {lr})')
-        ax.grid(True, alpha=0.3)
+            ax = axes[row, col]
+            ax.plot(cost_history, linewidth=2)
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Cost (MSE)')
+            ax.set_title(f'LR = {lr}, Iterations = {n_iter}')
+            ax.grid(True, alpha=0.3)
 
-        ax.annotate(f'Final: {cost_history[-1]:.4f}',
-                    xy=(0.95, 0.95), xycoords='axes fraction',
-                    ha='right', va='top',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            ax.annotate(f'Final: {cost_history[-1]:.4f}',
+                        xy=(0.95, 0.95), xycoords='axes fraction',
+                        ha='right', va='top',
+                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
+    plt.suptitle('BGD: Learning Rate vs Iterations Comparison',
+                 fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f'{PLOTS_DIR}/1_3_A_bgd_multiple_lr.png',
+    plt.savefig(f'{PLOTS_DIR}/1_3_A_bgd_multiple_lr_iter.png',
                 dpi=150, bbox_inches='tight')
     plt.show()
 
@@ -139,7 +143,7 @@ def plot_regression_line(X_train, X_test, y_train, y_test, theta_0, theta_1, met
     ax.set_xlabel('Weight (Normalized)')
     ax.set_ylabel('MPG')
     ax.set_title(
-        f'{method_name} Regression\nθ₀ = {theta_0:.4f}, θ₁ = {theta_1:.4f}')
+        f'{method_name} Regression\ntheta_0 = {theta_0:.4f}, theta_1 = {theta_1:.4f}')
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -179,7 +183,7 @@ def plot_sgd_cost(cost_history, learning_rate):
 
 def plot_sgd_cost_multiple_lr(X_train, y_train, sgd_func):
     """
-    Task 1.3.B.4: Experiment with different learning rates for SGD
+    Task 1.3.B.4: Experiment with different learning rates AND epochs for SGD
 
     Args:
         X_train: normalized training features
@@ -187,29 +191,33 @@ def plot_sgd_cost_multiple_lr(X_train, y_train, sgd_func):
         sgd_func: your stochastic_gradient_descent function
     """
     learning_rates = [0.001, 0.01, 0.05, 0.1]
+    epochs_list = [50, 100]
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    axes = axes.flatten()
+    fig, axes = plt.subplots(len(epochs_list), len(
+        learning_rates), figsize=(18, 10))
 
-    for idx, lr in enumerate(learning_rates):
-        np.random.seed(42)
-        _, _, cost_history = sgd_func(
-            X_train, y_train, learning_rate=lr, n_epochs=100)
+    for row, n_epochs in enumerate(epochs_list):
+        for col, lr in enumerate(learning_rates):
+            np.random.seed(42)
+            _, _, cost_history = sgd_func(
+                X_train, y_train, learning_rate=lr, n_epochs=n_epochs)
 
-        ax = axes[idx]
-        ax.plot(cost_history, linewidth=2)
-        ax.set_xlabel('Epoch')
-        ax.set_ylabel('Cost (MSE)')
-        ax.set_title(f'SGD Cost (lr = {lr})')
-        ax.grid(True, alpha=0.3)
+            ax = axes[row, col]
+            ax.plot(cost_history, linewidth=2)
+            ax.set_xlabel('Epoch')
+            ax.set_ylabel('Cost (MSE)')
+            ax.set_title(f'LR = {lr}, Epochs = {n_epochs}')
+            ax.grid(True, alpha=0.3)
 
-        ax.annotate(f'Final: {cost_history[-1]:.4f}',
-                    xy=(0.95, 0.95), xycoords='axes fraction',
-                    ha='right', va='top',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            ax.annotate(f'Final: {cost_history[-1]:.4f}',
+                        xy=(0.95, 0.95), xycoords='axes fraction',
+                        ha='right', va='top',
+                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
+    plt.suptitle('SGD: Learning Rate vs Epochs Comparison',
+                 fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f'{PLOTS_DIR}/1_3_B_sgd_multiple_lr.png',
+    plt.savefig(f'{PLOTS_DIR}/1_3_B_sgd_multiple_lr_epochs.png',
                 dpi=150, bbox_inches='tight')
     plt.show()
 
@@ -284,11 +292,11 @@ def plot_all_methods_comparison(X_train, X_test, y_train, y_test,
                          max(X_train.max(), X_test.max()) + 0.5, 100)
 
     ax.plot(x_line, theta_0_cf + theta_1_cf * x_line, 'r-', linewidth=3,
-            label=f'Closed-Form (θ₀={theta_0_cf:.4f}, θ₁={theta_1_cf:.4f})')
+            label=f'Closed-Form (theta_0={theta_0_cf:.4f}, theta_1={theta_1_cf:.4f})')
     ax.plot(x_line, theta_0_bgd + theta_1_bgd * x_line, 'g--', linewidth=2,
-            label=f'BGD (θ₀={theta_0_bgd:.4f}, θ₁={theta_1_bgd:.4f})')
+            label=f'BGD (theta_0={theta_0_bgd:.4f}, theta_1={theta_1_bgd:.4f})')
     ax.plot(x_line, theta_0_sgd + theta_1_sgd * x_line, 'b:', linewidth=2,
-            label=f'SGD (θ₀={theta_0_sgd:.4f}, θ₁={theta_1_sgd:.4f})')
+            label=f'SGD (theta_0={theta_0_sgd:.4f}, theta_1={theta_1_sgd:.4f})')
 
     ax.set_xlabel('Weight (Normalized)')
     ax.set_ylabel('MPG')
@@ -370,7 +378,7 @@ def plot_logistic_cost(cost_history, learning_rate):
 
 def plot_logistic_cost_multiple_lr(X_train, y_train, fit_func):
     """
-    Task 2.3.3: Experiment with different learning rates
+    Task 2.3.3: Experiment with different learning rates AND epochs for Logistic Regression
 
     Args:
         X_train: training features (numpy array)
@@ -378,28 +386,32 @@ def plot_logistic_cost_multiple_lr(X_train, y_train, fit_func):
         fit_func: your fit function from logistic_regression.py
     """
     learning_rates = [0.001, 0.01, 0.1, 0.5]
+    iterations_list = [500, 1000]
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    axes = axes.flatten()
+    fig, axes = plt.subplots(len(iterations_list), len(
+        learning_rates), figsize=(18, 10))
 
-    for idx, lr in enumerate(learning_rates):
-        _, _, cost_history = fit_func(
-            X_train, y_train, learning_rate=lr, n_iterations=1000)
+    for row, n_iter in enumerate(iterations_list):
+        for col, lr in enumerate(learning_rates):
+            _, _, cost_history = fit_func(
+                X_train, y_train, learning_rate=lr, n_iterations=n_iter)
 
-        ax = axes[idx]
-        ax.plot(cost_history, linewidth=2)
-        ax.set_xlabel('Iteration')
-        ax.set_ylabel('Cost (Cross-Entropy)')
-        ax.set_title(f'Logistic Regression Cost (lr = {lr})')
-        ax.grid(True, alpha=0.3)
+            ax = axes[row, col]
+            ax.plot(cost_history, linewidth=2)
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Cost (Cross-Entropy)')
+            ax.set_title(f'LR = {lr}, Iterations = {n_iter}')
+            ax.grid(True, alpha=0.3)
 
-        ax.annotate(f'Final: {cost_history[-1]:.4f}',
-                    xy=(0.95, 0.95), xycoords='axes fraction',
-                    ha='right', va='top',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            ax.annotate(f'Final: {cost_history[-1]:.4f}',
+                        xy=(0.95, 0.95), xycoords='axes fraction',
+                        ha='right', va='top',
+                        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
+    plt.suptitle('Logistic Regression: Learning Rate vs Iterations Comparison',
+                 fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(f'{PLOTS_DIR}/2_3_3_logistic_multiple_lr.png',
+    plt.savefig(f'{PLOTS_DIR}/2_3_3_logistic_multiple_lr_iter.png',
                 dpi=150, bbox_inches='tight')
     plt.show()
 
