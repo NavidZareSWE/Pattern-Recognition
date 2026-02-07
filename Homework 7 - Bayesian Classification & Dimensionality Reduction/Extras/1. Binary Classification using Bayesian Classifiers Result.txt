@@ -1,0 +1,175 @@
+============================================================
+TASK 1.1: UNDERSTANDING THE DATA
+============================================================
+
+--- 1.1.1 Dataset Overview ---
+Number of samples: 569
+Number of features: 30
+Number of classes: 2
+Classes: ['M' 'B']
+
+--- 1.1.2 Class Distribution ---
+Benign (B=0): 357 (62.74%)
+Malignant (M=1): 212 (37.26%)
+Imbalanced? Yes
+Imbalance Ratio: 1.68:1
+
+--- 1.1.3 Exploratory Visual Analysis ---
+Plotting class-wise histograms for selected features...
+
+--- 1.1.4 Highly Correlated Feature Pairs ---
+Rank   Feature 1                 Feature 2                   |Correlation|
+---------------------------------------------------------------------------
+1      mean_radius               mean_perimeter                     0.9979
+2      worst_radius              worst_perimeter                    0.9937
+3      mean_radius               mean_area                          0.9874
+
+============================================================
+TASK 1.4.1: TRAIN-TEST SPLIT
+============================================================
+Training samples: 456
+Testing samples: 113
+Features: 30
+
+============================================================
+TASK 1.4: MODEL IMPLEMENTATION & CLASSIFICATION
+============================================================
+
+--- Training Gaussian Naive Bayes ---
+Class priors: [0.62719298 0.37280702]
+Means shape: (2, 30)
+Variances shape: (2, 30)
+
+--- Training Linear Discriminant Analysis (LDA) ---
+Class priors: [0.62719298 0.37280702]
+Means shape: (2, 30)
+Shared covariance shape: (30, 30)
+
+--- Training Quadratic Discriminant Analysis (QDA) ---
+Class priors: [0.62719298 0.37280702]
+Means shape: (2, 30)
+Number of covariance matrices: 2
+
+============================================================
+CLASSIFICATION RESULTS (Task 1.4.5-6)
+============================================================
+
+Classifier      Set          Accuracy  Precision     Recall         F1
+----------------------------------------------------------------------
+GNB             train          0.9364     0.9273     0.9000     0.9134
+GNB             test           0.9115     0.8810     0.8810     0.8810
+LDA             train          0.9715     1.0000     0.9235     0.9602
+LDA             test           0.9381     0.9487     0.8810     0.9136
+QDA             train          0.9715     0.9876     0.9353     0.9607
+QDA             test           0.9381     0.9070     0.9286     0.9176
+
+============================================================
+TASK 1.5: COVARIANCE MATRIX ANALYSIS
+============================================================
+
+--- 1.5.1 Covariance Matrix Properties ---
+Shape: (30, 30)
+Rank: 30
+Full rank would be: 30
+Status: Full rank
+
+--- 1.5.2 Eigenvalue Analysis ---
+Largest eigenvalue: 4.592355e+05
+Smallest eigenvalue: 7.434020e-07
+Eigenvalue range: 6.18e+11
+
+--- 1.5.3 Condition Number ---
+Condition number: 6.18e+11
+
+============================================================
+TASK 1.6: VARIANCE ANALYSIS
+============================================================
+
+--- 1.6.1 Feature Variances ---
+Rank   Feature                               Variance
+-------------------------------------------------------
+1      se_fractal_dimension              7.622479e-06
+2      se_smoothness                     9.522134e-06
+3      se_concave_points                 4.003970e-05
+4      mean_fractal_dimension            5.017506e-05
+5      se_symmetry                       6.245538e-05
+6      mean_smoothness                   1.883555e-04
+7      se_compactness                    3.333667e-04
+8      worst_fractal_dimension           3.408564e-04
+9      worst_smoothness                  4.847156e-04
+10     mean_symmetry                     7.169282e-04
+
+10th percentile variance threshold: 4.916152e-05
+Number of low-variance features: 3
+Low-variance features:
+  - se_smoothness: 9.522134e-06
+  - se_concave_points: 4.003970e-05
+  - se_fractal_dimension: 7.622479e-06
+
+============================================================
+TASK 1.7: VARIANCE-BASED FEATURE ELIMINATION
+============================================================
+
+--- 1.7.1-2 Feature Elimination ---
+Variance threshold (10th percentile): 4.916152e-05
+Features removed: 3
+Features kept: 27
+
+Removed features:
+  - se_smoothness
+  - se_concave_points
+  - se_fractal_dimension
+
+--- 1.7.3-4 Covariance Analysis Comparison ---
+Metric                             Before           After
+-------------------------------------------------------
+Dimensions                             30              27
+Rank                                   30              27
+Condition Number                 6.18e+11        1.61e+11
+Min Eigenvalue                   7.43e-07        2.86e-06
+Max Eigenvalue                   4.59e+05        4.59e+05
+
+============================================================
+TASK 1.8: RE-ESTIMATION WITH REDUCED FEATURES
+============================================================
+
+--- Classification Results (Reduced Features) ---
+Number of features: 27
+
+Classifier      Set          Accuracy  Precision     Recall         F1
+----------------------------------------------------------------------
+LDA_reduced     train          0.9693     1.0000     0.9176     0.9571
+LDA_reduced     test           0.9292     0.9474     0.8571     0.9000
+QDA_reduced     train          0.9715     0.9876     0.9353     0.9607
+QDA_reduced     test           0.9292     0.9048     0.9048     0.9048
+
+============================================================
+TASK 1.9: PERFORMANCE EVALUATION & ERROR ANALYSIS
+============================================================
+
+--- 1.9.1 Performance Metrics ---
+
+Classifier         Set           Acc     Prec   Recall       F1
+-----------------------------------------------------------------
+GNB                train      0.9364   0.9273   0.9000   0.9134
+GNB                test       0.9115   0.8810   0.8810   0.8810
+LDA                train      0.9715   1.0000   0.9235   0.9602
+LDA                test       0.9381   0.9487   0.8810   0.9136
+QDA                train      0.9715   0.9876   0.9353   0.9607
+QDA                test       0.9381   0.9070   0.9286   0.9176
+LDA (reduced)      train      0.9693   1.0000   0.9176   0.9571
+LDA (reduced)      test       0.9292   0.9474   0.8571   0.9000
+QDA (reduced)      train      0.9715   0.9876   0.9353   0.9607
+QDA (reduced)      test       0.9292   0.9048   0.9048   0.9048
+
+--- 1.9.2 Error Analysis (Test Set) ---
+Classifier            Total Errors       FP       FN
+--------------------------------------------------
+LDA                              7        2        5
+QDA                              7        4        3
+LDA (reduced)                    8        2        6
+QDA (reduced)                    8        4        4
+
+--- 1.9.3 Generalization Analysis ---
+LDA: Train=0.9715, Test=0.9381, Gap=0.0334
+QDA: Train=0.9715, Test=0.9381, Gap=0.0334

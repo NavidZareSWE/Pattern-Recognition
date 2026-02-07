@@ -1,0 +1,125 @@
+============================================================
+TASK 2.2.2: PCA IMPLEMENTATION
+============================================================
+
+--- 2.2.1.3 Mean Face ---
+Mean face shape: (10304,)
+
+--- 2.2.1.5 Normalization Options ---
+Mean subtraction only
+  - Variance range: [0.0000, 3683.1764]
+
+--- 2.2.2.1-2 PCA Fitting ---
+Number of principal components: 400
+Top 5 eigenvalues: [2823582.68435044 2073748.7639229  1094902.19980171  902486.70130741
+  812149.12782378]
+
+============================================================
+TASK 2.2.3: PROJECTION & RECONSTRUCTION
+============================================================
+
+--- 2.2.3.1-2 Reconstruction with 50 components ---
+Mean squared reconstruction error: 285.7500
+
+--- 2.2.3.3 Variance Retention ---
+Components for 90% variance: 111
+Components for 95% variance: 190
+Components for 99% variance: 325
+
+============================================================
+TASK 2.2.4: FACE RECOGNITION / CLASSIFICATION
+============================================================
+
+--- 2.2.4.1 Train-Test Split ---
+Training samples: 360
+Testing samples: 40
+
+--- 2.2.4.2-4 Classifier Evaluation ---
+
+n_components        Nearest Centroid        Bayesian
+-------------------------------------------------------
+10                            0.9000          0.6750
+20                            0.9250          0.9500
+30                            0.9250          0.9750
+50                            0.9250          1.0000
+75                            0.9250          0.9750
+100                           0.9250          0.9750
+150                           0.9250          0.9750
+200                           0.9250          0.9750
+
+--- 2.2.4.6 Trade-off Analysis ---
+Best Nearest Centroid: 20 components (0.9250)
+Best Bayesian: 50 components (1.0000)
+
+--- 2.2.4.7 PCA vs PCA+LDA Comparison ---
+
+n_PCA                  PCA Only       PCA + LDA
+--------------------------------------------------
+50                       0.9250          0.9250
+75                       0.9250          0.9250
+100                      0.9250          0.9250
+150                      0.9250          0.9500
+
+============================================================
+TASK 2.3: FISHER LINEAR DISCRIMINANT ANALYSIS
+============================================================
+
+--- 2.3.1 Data Preprocessing ---
+Applied PCA: 10304 -> 100 dimensions
+
+--- 2.3.2 Scatter Matrices ---
+S_W shape: (100, 100)
+S_B shape: (100, 100)
+S_W rank: 100
+S_B rank: 39
+
+--- 2.3.3 Eigenvalue Problem ---
+Number of discriminants: 39
+Maximum possible discriminants: 39
+Top 5 eigenvalues: [129.30470849 111.54897265 -69.16533738  69.10650585 -56.69326996]
+
+--- 2.3.4 Separability Analysis ---
+Maximum discriminants constrained by: min(n_classes-1, n_features)
+For ORL: min(40-1, 100) = 39
+
+--- 2.3.5 Projection to LDA Space ---
+Projected dimensions: 39
+Trade-off: More components = more info but higher dimensionality
+
+============================================================
+TASK 2.3.6: LDA CLASSIFICATION EVALUATION
+============================================================
+
+--- Classification Results ---
+n_LDA                  Accuracy
+-----------------------------------
+5                        0.6000
+10                       0.8500
+15                       0.8750
+20                       0.8750
+25                       0.8500
+30                       0.8750
+35                       0.8500
+
+--- Best Model: 15 LDA components ---
+Accuracy: 0.8750
+
+--- Analysis ---
+Diminishing returns with more components:
+  5 -> 10: +0.2500
+  10 -> 15: +0.0250
+  15 -> 20: +0.0000
+  20 -> 25: -0.0250
+  25 -> 30: +0.0250
+  30 -> 35: -0.0250
+
+--- FINAL SUMMARY ---
+
+PCA Results:
+  Best accuracy: 1.0000
+
+PCA + LDA Results:
+  Best accuracy: 0.9500
+
+LDA-only Results:
+  Best accuracy: 0.8750
