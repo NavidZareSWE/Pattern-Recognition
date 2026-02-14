@@ -1,6 +1,5 @@
-![Pattern recognition and Machine learning](https://res.cloudinary.com/dyjew8iji/image/upload/v1771065006/pattern_recognition_and_machine_learning_sfpa55.webp)
-
 # Pattern Recognition Algorithms
+![Pattern recognition and Machine learning](https://res.cloudinary.com/dyjew8iji/image/upload/v1771065006/pattern_recognition_and_machine_learning_sfpa55.webp)
 
 A comprehensive collection of pattern recognition and statistical learning algorithms implemented in Python. This repository provides clean, well-documented implementations of fundamental algorithms used in machine learning and data analysis.
 
